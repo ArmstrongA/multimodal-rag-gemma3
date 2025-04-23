@@ -20,6 +20,7 @@ import shutil
 # --- Configuration ---
 
 #POPPLER_PATH = r'C:\poppler-24.08.0\Library\bin'
+# Set path for poppler
 POPPLER_PATH = os.environ.get('POPPLER_PATH', '/usr/bin')
 
 CLIP_MODEL_NAME = "openai/clip-vit-base-patch32"
