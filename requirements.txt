@@ -1,0 +1,10 @@
+streamlit
+requests
+Pillow
+PyMuPDF
+pdf2image
+numpy
+torch
+transformers
+qdrant-client
+tqdm

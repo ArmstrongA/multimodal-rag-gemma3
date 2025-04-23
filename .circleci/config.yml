@@ -1,0 +1,74 @@
+version: 2.1
+jobs:
+  build-and-deploy:
+    docker:
+      - image: cimg/python:3.12.5
+    steps:
+      - checkout
+      # Enable Docker support
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: Install Google Cloud SDK
+          command: |
+            curl https://sdk.cloud.google.com | bash > /dev/null 2>&1
+            source $HOME/google-cloud-sdk/path.bash.inc
+      # Install dependencies and run tests
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "requirements.txt" }}
+      - run:
+          name: Install Dependencies
+          command: |
+            python -m venv venv
+            . venv/bin/activate
+            pip install --no-cache-dir -r requirements.txt
+      - save_cache:
+          paths:
+            - ./venv
+          key: v1-dependencies-{{ checksum "requirements.txt" }}
+      - run:
+          name: Run Tests
+          command: |
+            . venv/bin/activate
+            pytest tests/ -v
+      # Create repo and build container in Artifacts Registry
+      - run:
+          name: Authenticate Google Cloud
+          command: |
+            export PATH=$HOME/google-cloud-sdk/bin:$PATH
+            echo $KEYFILE | base64 -d > ${HOME}/gcloud-service-key.json
+            gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
+            gcloud config set project $GOOGLE_CLOUD_PROJECT
+            gcloud auth configure-docker us-docker.pkg.dev
+      - run:
+          name: Create Artifact Registry Repository
+          command: |
+            export PATH=$HOME/google-cloud-sdk/bin:$PATH
+            if ! gcloud artifacts repositories describe images --location=us-central1 --project=$PROJECT_ID > /dev/null 2>&1; then
+              gcloud artifacts repositories create images \
+                --repository-format=docker \
+                --location=us-central1 \
+                --project=$PROJECT_ID
+            fi
+      - run:
+          name: Build Docker Image
+          command: |
+            docker build -t us-central1-docker.pkg.dev/$PROJECT_ID/images/streamlit-rag:latest .
+      - run:
+          name: Docker Login
+          command: |
+            export PATH=$HOME/google-cloud-sdk/bin:$PATH
+            docker login -u _json_key -p "$(cat ${HOME}/gcloud-service-key.json)" us-central1-docker.pkg.dev
+      - run:
+          name: Push Docker Image
+          command: |
+            export PATH=$HOME/google-cloud-sdk/bin:$PATH
+            docker push us-central1-docker.pkg.dev/$PROJECT_ID/images/streamlit-rag:latest .
+
+workflows:
+  build-deploy:
+    jobs:
+      - build-and-deploy:
+          context: 
+           - gke_deploy

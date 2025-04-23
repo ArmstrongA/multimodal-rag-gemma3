@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: streamlit-app
+  labels:
+    app: streamlit-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: streamlit-app
+  template:
+    metadata:
+      labels:
+        app: streamlit-app
+    spec:
+      containers:
+      - name: streamlit-app
+        image: gcr.io/gen-lang-client-0872886306/streamlit-rag:latest
+        ports:
+        - containerPort: 8501
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "1"
+            memory: "2Gi"
+        env:
+        - name: POPPLER_PATH
+          value: "/usr/bin"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: streamlit-app
+spec:
+  selector:
+    app: streamlit-app
+  ports:
+  - port: 80
+    targetPort: 8501
+  type: LoadBalancer
