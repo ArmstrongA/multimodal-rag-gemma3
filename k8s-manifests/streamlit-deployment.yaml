@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: streamlit-app
-        image: gcr.io/gen-lang-client-0872886306/streamlit-rag:latest
+        image: us-central1-docker.pkg.dev/$PROJECT_ID/images/streamlit-rag:latest
         ports:
         - containerPort: 8501
         resources:
