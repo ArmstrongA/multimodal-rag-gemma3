@@ -39,7 +39,7 @@ jobs:
             export PATH=$HOME/google-cloud-sdk/bin:$PATH
             echo $KEYFILE | base64 -d > ${HOME}/gcloud-service-key.json
             gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
-            gcloud config set project $GOOGLE_CLOUD_PROJECT
+            gcloud config set project $PROJECT_ID
             gcloud auth configure-docker us-docker.pkg.dev
       - run:
           name: Create Artifact Registry Repository
