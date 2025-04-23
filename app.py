@@ -127,7 +127,7 @@ class QueryEngine:
     def _load_embedding_model(self):
         st.write(f"Loading CLIP model: {CLIP_MODEL_NAME}")
         try:
-            # Check if the cache directory exists, create it if it doesn't
+            # Check if the cache directory exists, otherwise create it
             if not os.path.exists(CACHE_DIR):
                 st.write(f"Cache directory {CACHE_DIR} does not exist. Creating it...")
                 os.makedirs(CACHE_DIR, exist_ok=True)
