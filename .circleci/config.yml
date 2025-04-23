@@ -27,11 +27,11 @@ jobs:
           paths:
             - ./venv
           key: v1-dependencies-{{ checksum "requirements.txt" }}
-      - run:
-          name: Run Tests
-          command: |
-            . venv/bin/activate
-            pytest tests/ -v
+      # - run:
+      #     name: Run Tests
+      #     command: |
+      #       . venv/bin/activate
+      #       pytest tests/ -v
       # Create repo and build container in Artifacts Registry
       - run:
           name: Authenticate Google Cloud

@@ -20,7 +20,7 @@ import shutil
 # --- Configuration ---
 
 #POPPLER_PATH = r'C:\poppler-24.08.0\Library\bin'
-os.environ.get('POPPLER_PATH', '/usr/bin')
+POPPLER_PATH = os.environ.get('POPPLER_PATH', '/usr/bin')
 
 CLIP_MODEL_NAME = "openai/clip-vit-base-patch32"
 CACHE_DIR = "./hf_cache"
@@ -127,22 +127,34 @@ class QueryEngine:
     def _load_embedding_model(self):
         st.write(f"Loading CLIP model: {CLIP_MODEL_NAME}")
         try:
+            # Check if the cache directory exists, create it if it doesn't
+            if not os.path.exists(CACHE_DIR):
+                st.write(f"Cache directory {CACHE_DIR} does not exist. Creating it...")
+                os.makedirs(CACHE_DIR, exist_ok=True)
+                st.write(f"Cache directory created successfully.")
+            
+            st.write(f"Checking for model in cache directory: {CACHE_DIR}")
+            # Load model from cache if available, otherwise download it
             self.clip_model = CLIPModel.from_pretrained(
                 CLIP_MODEL_NAME,
                 cache_dir=CACHE_DIR
             ).to(self.DEVICE).eval()
+            
+            st.write(f"Loading processor from {CLIP_MODEL_NAME}")
             self.clip_processor = AutoProcessor.from_pretrained(
                 CLIP_MODEL_NAME,
                 cache_dir=CACHE_DIR
             )
+            
+            # Determine embedding dimension
             if hasattr(self.clip_model.config, 'projection_dim'):
                 self.embedding_dimension_clip = self.clip_model.config.projection_dim
             elif hasattr(self.clip_model.config, 'hidden_size'):
-                 self.embedding_dimension_clip = self.clip_model.config.hidden_size
+                self.embedding_dimension_clip = self.clip_model.config.hidden_size
             else:
-                 st.warning("Could not automatically determine embedding dimension from model config.")
-                 # Fallback dimension for CLIP-base-patch32
-                 self.embedding_dimension_clip = 512 # Assume 512 for this specific model
+                st.warning("Could not automatically determine embedding dimension from model config.")
+                # Fallback dimension for CLIP-base-patch32
+                self.embedding_dimension_clip = 512  # Assume 512 for this specific model
 
             st.write(f"CLIP Embedding dimension: {self.embedding_dimension_clip}")
             st.write("CLIP model and processor loaded successfully.")
