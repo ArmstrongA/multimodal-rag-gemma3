@@ -14,8 +14,8 @@ spec:
       labels:
         app: ollama
     spec:
-      nodeSelector:
-        cloud.google.com/gke-nodepool: gpu-pool
+      #nodeSelector:
+        #cloud.google.com/gke-nodepool: gpu-pool
       containers:
       - name: ollama
         image: ollama/ollama:latest
@@ -24,17 +24,17 @@ spec:
         resources:
           requests:
             cpu: "1"
-            memory: "4Gi"
+            memory: "8Gi"
           limits:
             cpu: "4"
             memory: "16Gi"
-            nvidia.com/gpu: "1"
+            #nvidia.com/gpu: "1"
         command: ["/bin/sh", "-c"]
         args:
           - |
             ollama serve &
             sleep 10
-            ollama pull gemma3:latest
+            ollama pull gemma3
             wait
 ---
 apiVersion: v1

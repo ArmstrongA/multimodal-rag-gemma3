@@ -19,9 +19,9 @@ import shutil
 
 # --- Configuration ---
 
-#POPPLER_PATH = r'C:\poppler-24.08.0\Library\bin'
+POPPLER_PATH = r'C:\poppler-24.08.0\Library\bin'
 # Set path for poppler dep
-POPPLER_PATH = os.environ.get('POPPLER_PATH', '/usr/bin')
+#POPPLER_PATH = os.environ.get('POPPLER_PATH', '/usr/bin')
 
 CLIP_MODEL_NAME = "openai/clip-vit-base-patch32"
 CACHE_DIR = "./hf_cache"
@@ -82,7 +82,7 @@ class QueryEngine:
         self.collection_name = f"clip_multimodal_pdf_rag_{session_id}" # Unique collection per session
         self.embedding_dimension_clip = None
         self.ollama_model_name = 'gemma3:latest'
-        self.ollama_api_base = "http://ollama:11434"
+        self.ollama_api_base = "http://localhost:11434"
         self.DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
         self._process_pdf()
