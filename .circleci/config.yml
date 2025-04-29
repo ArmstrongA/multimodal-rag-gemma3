@@ -101,9 +101,9 @@ jobs:
           command: |
             export PATH=$HOME/google-cloud-sdk/bin:$PATH
             echo "Waiting for deployments to be ready..."
-            kubectl rollout status deployment/qdrant-deployment
-            kubectl rollout status deployment/ollama-deployment
-            kubectl rollout status deployment/streamlit-deployment
+            kubectl rollout status deployment/qdrant
+            kubectl rollout status deployment/ollama
+            kubectl rollout status deployment/streamlit-app
             echo "Deployment successful! Here are the services:"
             kubectl get services
 

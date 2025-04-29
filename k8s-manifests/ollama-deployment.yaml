@@ -14,8 +14,8 @@ spec:
       labels:
         app: ollama
     spec:
-      #nodeSelector:
-        #cloud.google.com/gke-nodepool: gpu-pool
+      nodeSelector:
+        cloud.google.com/gke-nodepool: gpu-pool
       containers:
       - name: ollama
         image: ollama/ollama:latest
@@ -28,7 +28,7 @@ spec:
           limits:
             cpu: "4"
             memory: "16Gi"
-            #nvidia.com/gpu: "1"
+            nvidia.com/gpu: "1"
         command: ["/bin/sh", "-c"]
         args:
           - |

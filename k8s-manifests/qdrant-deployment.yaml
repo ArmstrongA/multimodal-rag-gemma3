@@ -14,6 +14,15 @@ spec:
       labels:
         app: qdrant
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: cloud.google.com/gke-nodepool
+                operator: In
+                values:
+                - cpu-high
       containers:
       - name: qdrant
         image: qdrant/qdrant:latest

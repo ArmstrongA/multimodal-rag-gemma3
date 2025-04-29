@@ -241,7 +241,7 @@ class QueryEngine:
             self.progress_callback(f"Error generating text query embedding: {e}")
             return None
 
-    def _retrieve_context(self, query_embedding, top_k=2):
+    def _retrieve_context(self, query_embedding, top_k=3):
         if not self.qdrant_client or not query_embedding:
             self.progress_callback("Qdrant client not initialized or query embedding is missing.")
             return []

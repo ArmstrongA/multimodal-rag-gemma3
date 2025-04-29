@@ -3,6 +3,7 @@ import os
 import base64
 import uuid
 import shutil
+import fitz
 import sys
 
 #Make sure the current directory is in the path so we can import the rag_engine module
@@ -11,8 +12,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from rag_engine import QueryEngine
 
 # Configuration
-#POPPLER_PATH = r'C:\poppler-24.08.0\Library\bin'
-POPPLER_PATH = os.environ.get('POPPLER_PATH', '/usr/bin') #Use in production
+POPPLER_PATH = r'C:\poppler-24.08.0\Library\bin'
+#POPPLER_PATH = os.environ.get('POPPLER_PATH', '/usr/bin') #Use in production
 
 # Streamlit App Layout
 st.set_page_config(layout="wide")
@@ -51,11 +52,30 @@ def reset_chat():
     if current_file is None:
         st.rerun()
 
+# def display_pdf(file):
+#     st.markdown("### PDF Preview")
+#     base64_pdf = base64.b64encode(file.getvalue()).decode("utf-8")
+#     pdf_display = f"""<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="400" type="application/pdf"></iframe>"""
+#     st.markdown(pdf_display, unsafe_allow_html=True)
+
 def display_pdf(file):
     st.markdown("### PDF Preview")
-    base64_pdf = base64.b64encode(file.getvalue()).decode("utf-8")
-    pdf_display = f"""<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="400" type="application/pdf"></iframe>"""
-    st.markdown(pdf_display, unsafe_allow_html=True)
+    try:
+        pdf_document = fitz.open(stream=file.read(), filetype="pdf")
+        for page_number in range(pdf_document.page_count):
+            page = pdf_document.load_page(page_number)
+            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # Increase resolution
+            img_bytes = pix.tobytes("png")
+            st.image(img_bytes, caption=f"Page {page_number + 1}", use_container_width=True)
+        pdf_document.close()
+    except Exception as e:
+        st.error(f"Error displaying PDF: {e}")
+        st.warning(
+            "An error occurred while trying to render the PDF as images. This can"
+            " happen with some complex or corrupted PDF files.  Consider downloading"
+            " the file instead."
+        )
+
 
 def streamlit_progress_callback(msg):
     """Callback function to display progress in Streamlit"""
