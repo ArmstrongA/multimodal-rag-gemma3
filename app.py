@@ -12,8 +12,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from rag_engine import QueryEngine
 
 # Configuration
-POPPLER_PATH = r'C:\poppler-24.08.0\Library\bin'
-#POPPLER_PATH = os.environ.get('POPPLER_PATH', '/usr/bin') #Use in production
+#POPPLER_PATH = r'C:\poppler-24.08.0\Library\bin'
+POPPLER_PATH = os.environ.get('POPPLER_PATH', '/usr/bin') #Use in production
 
 # Streamlit App Layout
 st.set_page_config(layout="wide")
