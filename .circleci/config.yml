@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   build-and-deploy:
     docker:
-      - image: cimg/python:3.12-slim
+      - image: cimg/python:3.12.5
     steps:
       - checkout
       # Enable Docker support
