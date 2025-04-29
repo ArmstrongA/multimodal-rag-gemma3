@@ -1,2 +1,5 @@
 /hf_cache
 /multimodal_rag
+
+.dockerignore
+config1.yml

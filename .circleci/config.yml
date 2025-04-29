@@ -1,8 +1,9 @@
 version: 2.1
+
 jobs:
   build-and-deploy:
     docker:
-      - image: cimg/python:3.12.5
+      - image: cimg/python:3.12-slim
     steps:
       - checkout
       # Enable Docker support
@@ -27,11 +28,11 @@ jobs:
           paths:
             - ./venv
           key: v1-dependencies-{{ checksum "requirements.txt" }}
-      # - run:
-      #     name: Run Tests
-      #     command: |
-      #       . venv/bin/activate
-      #       pytest tests/ -v
+      - run:
+          name: Run Tests
+          command: |
+            . venv/bin/activate
+            pytest tests/ -v
       # Create repo and build container in Artifacts Registry
       - run:
           name: Authenticate Google Cloud
@@ -40,7 +41,7 @@ jobs:
             echo $GCP_KEY | base64 -d > ${HOME}/gcloud-service-key.json
             gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
             gcloud config set project $PROJECT_ID
-            gcloud auth configure-docker us-docker.pkg.dev
+            gcloud auth configure-docker us-central1-docker.pkg.dev
       - run:
           name: Create Artifact Registry Repository
           command: |
@@ -65,10 +66,50 @@ jobs:
           command: |
             export PATH=$HOME/google-cloud-sdk/bin:$PATH
             docker push us-central1-docker.pkg.dev/$PROJECT_ID/images/streamlit-rag:latest
+      
+      # Connect to GKE and deploy
+      - run:
+          name: Install kubectl
+          command: |
+            export PATH=$HOME/google-cloud-sdk/bin:$PATH
+            gcloud components install kubectl
+      - run:
+          name: Connect to GKE Cluster
+          command: |
+            export PATH=$HOME/google-cloud-sdk/bin:$PATH
+            gcloud container clusters get-credentials $GKE_CLUSTER_NAME --zone $GKE_ZONE --project $PROJECT_ID
+      - run:
+          name: Update Kubernetes Manifests
+          command: |
+            # Replace placeholders in deployment files with actual values
+            sed -i "s|IMAGE_PLACEHOLDER|us-central1-docker.pkg.dev/$PROJECT_ID/images/streamlit-rag:latest|g" k8s-manifests/streamlit-deployment.yaml
+      - run:
+          name: Apply Kubernetes Manifests
+          command: |
+            export PATH=$HOME/google-cloud-sdk/bin:$PATH
+            # Create PVCs first
+            kubectl apply -f k8s-manifests/qdrant-pvc.yaml
+            # Wait for PVC to be bound
+            echo "Waiting for PVC to be bound..."
+            sleep 10
+            # Create deployments
+            kubectl apply -f k8s-manifests/qdrant-deployment.yaml
+            kubectl apply -f k8s-manifests/ollama-deployment.yaml
+            kubectl apply -f k8s-manifests/streamlit-deployment.yaml
+      - run:
+          name: Verify Deployment
+          command: |
+            export PATH=$HOME/google-cloud-sdk/bin:$PATH
+            echo "Waiting for deployments to be ready..."
+            kubectl rollout status deployment/qdrant-deployment
+            kubectl rollout status deployment/ollama-deployment
+            kubectl rollout status deployment/streamlit-deployment
+            echo "Deployment successful! Here are the services:"
+            kubectl get services
 
 workflows:
   build-deploy:
     jobs:
       - build-and-deploy:
-          context: 
-           - gke_deploy
+          context:
+            - gke_deploy
