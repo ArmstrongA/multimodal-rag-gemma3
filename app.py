@@ -3,7 +3,6 @@ import os
 import base64
 import uuid
 import shutil
-import fitz
 import sys
 
 #Make sure the current directory is in the path so we can import the rag_engine module
@@ -12,8 +11,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from rag_engine import QueryEngine
 
 # Configuration
-#POPPLER_PATH = r'C:\poppler-24.08.0\Library\bin'
-POPPLER_PATH = os.environ.get('POPPLER_PATH', '/usr/bin') #Use in production
+#POPPLER_PATH = r'C:\poppler-24.08.0\Library\bin' # For windows
+POPPLER_PATH = os.environ.get('POPPLER_PATH', '/usr/bin') #For unix-based systems
 
 # Streamlit App Layout
 st.set_page_config(layout="wide")
@@ -26,6 +25,9 @@ if "id" not in st.session_state:
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+if "progress_messages" not in st.session_state:
+    st.session_state.progress_messages = []
+
 session_id = st.session_state.id
 
 def reset_chat():
@@ -37,6 +39,7 @@ def reset_chat():
     
     # Clear session state items
     st.session_state.messages = []
+    st.session_state.progress_messages = []
     if "query_engine" in st.session_state:
         del st.session_state.query_engine
     st.session_state.file_cache = {}
@@ -52,34 +55,32 @@ def reset_chat():
     if current_file is None:
         st.rerun()
 
-# def display_pdf(file):
-#     st.markdown("### PDF Preview")
-#     base64_pdf = base64.b64encode(file.getvalue()).decode("utf-8")
-#     pdf_display = f"""<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="400" type="application/pdf"></iframe>"""
-#     st.markdown(pdf_display, unsafe_allow_html=True)
-
 def display_pdf(file):
     st.markdown("### PDF Preview")
     try:
-        pdf_document = fitz.open(stream=file.read(), filetype="pdf")
-        for page_number in range(pdf_document.page_count):
-            page = pdf_document.load_page(page_number)
-            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # Increase resolution
-            img_bytes = pix.tobytes("png")
-            st.image(img_bytes, caption=f"Page {page_number + 1}", use_container_width=True)
-        pdf_document.close()
+        # Use base64 encoding for a scrollable PDF viewer
+        base64_pdf = base64.b64encode(file.getvalue()).decode("utf-8")
+        pdf_display = f"""
+            <iframe 
+                src="data:application/pdf;base64,{base64_pdf}" 
+                width="100%" 
+                height="500px" 
+                type="application/pdf"
+                style="border: 1px solid #ddd; border-radius: 5px;"
+            ></iframe>
+        """
+        st.markdown(pdf_display, unsafe_allow_html=True)
     except Exception as e:
         st.error(f"Error displaying PDF: {e}")
         st.warning(
-            "An error occurred while trying to render the PDF as images. This can"
-            " happen with some complex or corrupted PDF files.  Consider downloading"
-            " the file instead."
+            "An error occurred while trying to render the PDF. This can"
+            " happen with some complex or corrupted PDF files."
         )
-
 
 def streamlit_progress_callback(msg):
     """Callback function to display progress in Streamlit"""
-    st.write(msg)
+    # Add the message to progress_messages session state
+    st.session_state.progress_messages.append(msg)
 
 # App Header
 col1, col2 = st.columns([6, 1])
@@ -97,6 +98,9 @@ with st.sidebar:
     st.header("Add your documents!")
     uploaded_file = st.file_uploader("Choose your `.pdf` file", type="pdf")
 
+    # Display progress messages container
+    progress_container = st.empty()
+    
     if uploaded_file:
         # Check if we need to process a new file or if it's already loaded
         file_key = uploaded_file.name + str(hash(uploaded_file.getvalue()))
@@ -106,6 +110,7 @@ with st.sidebar:
             if "query_engine" in st.session_state:
                 # Clear without forcing a rerun
                 st.session_state.messages = []
+                st.session_state.progress_messages = []
                 if "query_engine" in st.session_state:
                     del st.session_state.query_engine
                 st.session_state.file_cache = {}
@@ -120,6 +125,10 @@ with st.sidebar:
             # Process the new file
             with st.spinner("Processing your document. This may take a moment..."):
                 try:
+                    # Clear progress messages at the start
+                    st.session_state.progress_messages = []
+                    
+                    # Create the query engine with progress callback
                     st.session_state.query_engine = QueryEngine(
                         uploaded_file, 
                         session_id,
@@ -127,27 +136,56 @@ with st.sidebar:
                         poppler_path=POPPLER_PATH
                     )
                     st.session_state.file_cache[file_key] = True
+                    
+                    # Clear progress messages after successful processing
+                    st.session_state.progress_messages = []
+                    progress_container.empty()
+                    
                     st.success("Document processed and ready to chat!")
                 except Exception as e:
                     st.error(f"Error processing document: {str(e)}")
+                    # Clear progress messages on error too
+                    st.session_state.progress_messages = []
+                    progress_container.empty()
         elif "query_engine" not in st.session_state:
             # Case where the file is in cache but engine not loaded (after page refresh)
             with st.spinner("Processing your document. This may take a moment..."):
                 try:
+                    # Clear progress messages at the start
+                    st.session_state.progress_messages = []
+                    
                     st.session_state.query_engine = QueryEngine(
                         uploaded_file, 
                         session_id,
                         progress_callback=streamlit_progress_callback,
                         poppler_path=POPPLER_PATH
                     )
+                    
+                    # Clear progress messages after successful processing
+                    st.session_state.progress_messages = []
+                    progress_container.empty()
+                    
                     st.success("Document processed and ready to chat!")
                 except Exception as e:
                     st.error(f"Error processing document: {str(e)}")
+                    # Clear progress messages on error too
+                    st.session_state.progress_messages = []
+                    progress_container.empty()
         else:
             st.info("Document already loaded. Ready to chat!")
+            # Make sure progress messages are cleared
+            st.session_state.progress_messages = []
+            progress_container.empty()
         
         # Always show PDF preview when a file is uploaded
         display_pdf(uploaded_file)
+    
+    # Display progress messages if there are any
+    if st.session_state.progress_messages:
+        with progress_container.container():
+            st.markdown("### Processing Progress")
+            for msg in st.session_state.progress_messages:
+                st.write(msg)
 
 # Display chat messages from history on app rerun
 for message in st.session_state.messages:
