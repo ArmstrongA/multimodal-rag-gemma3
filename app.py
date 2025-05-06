@@ -10,7 +10,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from rag_engine import QueryEngine
 
-# Configuration
+# Configuration (adjust accordingly)
 #POPPLER_PATH = r'C:\poppler-24.08.0\Library\bin' # For windows
 POPPLER_PATH = os.environ.get('POPPLER_PATH', '/usr/bin') #For unix-based systems
 
